@@ -28,6 +28,7 @@ import {
   LeaderboardEntry,
 } from "@/services/leaderboard.service";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 // RegisterForm Schema
 const registerFormSchema = z.object({
@@ -43,7 +44,7 @@ const registerFormSchema = z.object({
   referral_code: z.string().optional(),
 });
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   // Search params to get possible referral code
   const searchParams = useSearchParams();
   const referralCodeFromUrl = searchParams.get("referralCode");
@@ -320,5 +321,17 @@ export default function RegisterPage() {
       {showUserResult && <UserResultCard />}
       {showLeaderboard && <LeaderboardCard />}
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-4">Loading...</div>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }
