@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Form,
@@ -20,8 +22,11 @@ import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { userService } from "@/services/user.service";
-import { leaderboardService } from "@/services/leaderboard.service";
+import { UserData, userService } from "@/services/user.service";
+import {
+  leaderboardService,
+  LeaderboardEntry,
+} from "@/services/leaderboard.service";
 
 // RegisterForm Schema
 const registerFormSchema = z.object({
@@ -37,6 +42,16 @@ const registerFormSchema = z.object({
 });
 
 export default function RegisterPage() {
+  // States to control the application
+  const [showRegisterForm, setShowRegisterForm] = useState(true);
+  const [showUserResult, setShowUserResult] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<
+    LeaderboardEntry[] | null
+  >(null);
+  const [error, setError] = useState("");
+
   const registerForm = useForm({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -54,101 +69,190 @@ export default function RegisterPage() {
 
   const onSubmit = async (values: RegisterFormValues): Promise<void> => {
     try {
-      const userData = await userService.create(values);
+      setError("");
+      const result = await userService.create(values);
+      setUserData(result.data);
+      setShowRegisterForm(false);
+      setShowUserResult(true);
       console.log("User registered successfully:", userData);
     } catch (error) {
       console.error("Failed to register user:", error);
+      setError("Failed to register user. Please try again.");
     }
   };
 
   const onFinishCompetition = async (): Promise<void> => {
     try {
-      const leaderboardData = await leaderboardService.getLeaderboard();
-      console.log("Leaderboard data:", leaderboardData);
+      setError("");
+      const result = await leaderboardService.getLeaderboard();
+      setLeaderboardData(result);
+      setShowRegisterForm(false);
+      setShowLeaderboard(true);
+      console.log("Leaderboard data:", result);
     } catch (error) {
       console.error("Failed to fetch leaderboard", error);
+      setError("Failed to fetch leaderboard. Please try again.");
     }
   };
 
+  const resetToForm = () => {
+    setShowRegisterForm(true);
+    setShowUserResult(false);
+    setShowLeaderboard(false);
+    registerForm.reset();
+  };
+
+  const RegisterFormCard = () => (
+    <Card className="p-6">
+      <CardTitle className="text-center">GSS Eco News Competition!</CardTitle>
+      <CardDescription className="text-center">
+        Welcome to GSS Eco News Competition! Please register to participate in.
+      </CardDescription>
+      <CardContent>
+        <Form {...registerForm}>
+          <form onSubmit={registerForm.handleSubmit(onSubmit)}>
+            <div className="space-y-4">
+              <FormField
+                control={registerForm.control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full name:</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your full name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter your full name for registering.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={registerForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your email" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter your email address to receive updates on your
+                      points.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={registerForm.control}
+                name="phone_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your phone number" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter your phone number for registering.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {error && <p className="text-red-500">{error}</p>}
+              <Button type="submit" className="w-full cursor-pointer">
+                Register
+              </Button>
+              <Button
+                type="button"
+                onClick={onFinishCompetition}
+                className="w-full cursor-pointer"
+              >
+                Finish competition!
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+  // UserResultCard Component
+  const UserResultCard = () => (
+    <Card className="p-6 w-full max-w-md">
+      <CardTitle className="text-center">Registration Successful!</CardTitle>
+      <CardDescription className="text-center">
+        Your registration has been successful. Here&apos;s your sharing link:.
+      </CardDescription>
+      <CardContent className="mt-4">
+        <div className="space-y-2">
+          <p>
+            <strong>Name:</strong> {userData?.full_name}
+          </p>
+          <p>
+            <strong>Link:</strong> {userData?.referral_code}
+          </p>
+          {userData?.id && (
+            <p>
+              <strong>User ID:</strong> {userData.id}
+            </p>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-center">
+        <Button onClick={resetToForm} className="mt-4">
+          Return to Registration
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+
+  // Competition result card to show the Leaderboard
+  const LeaderboardCard = () => (
+    <Card className="p-6 w-full max-w-md">
+      <CardTitle className="text-center">Competition Results</CardTitle>
+      <CardDescription className="text-center mt-2 mb-4">
+        Here are the final results of the GSS Eco News Competition!
+      </CardDescription>
+      <CardContent>
+        {leaderboardData && Array.isArray(leaderboardData) ? (
+          <div className="space-y-4">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Position</th>
+                  <th className="text-left py-2">Name</th>
+                  <th className="text-right py-2">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboardData.map((entry, index) => (
+                  <tr key={index} className="border-b">
+                    <td className="py-2">{index + 1}</td>
+                    <td className="py-2">{entry.ReferralId}</td>
+                    <td className="text-right py-2">{entry.ReferrersCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No leaderboard data available.</p>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-center">
+        <Button onClick={resetToForm} className="mt-4">
+          Return to Registration
+        </Button>
+      </CardFooter>
+    </Card>
+  );
   return (
-    <div className="flex items-center justify-center">
-      <Card className="p-6">
-        <CardTitle className="text-center">GSS Eco News Competition!</CardTitle>
-        <CardDescription className="text-center">
-          Welcome to GSS Eco News Competition! Please register to participate
-          in.
-        </CardDescription>
-        <CardContent>
-          <Form {...registerForm}>
-            <form onSubmit={registerForm.handleSubmit(onSubmit)}>
-              <div className="space-y-4">
-                <FormField
-                  control={registerForm.control}
-                  name="full_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full name:</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your full name" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Enter your full name for registering.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your email" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Enter your email address to receive updates on your
-                        points.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={registerForm.control}
-                  name="phone_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your phone number"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter your phone number for registering.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full cursor-pointer">
-                  Register
-                </Button>
-                <Button
-                  type="button"
-                  onClick={onFinishCompetition}
-                  className="w-full cursor-pointer"
-                >
-                  Finish competition!
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+    <div className="flex items-center justify-center p-4">
+      {showRegisterForm && <RegisterFormCard />}
+      {showUserResult && <UserResultCard />}
+      {showLeaderboard && <LeaderboardCard />}
     </div>
   );
 }

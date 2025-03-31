@@ -1,7 +1,12 @@
 import { api } from "./api";
 
+export interface LeaderboardEntry {
+  ReferralId: number;
+  ReferrersCount: number;
+}
+
 export const leaderboardService = {
-  getLeaderboard: async () => {
+  getLeaderboard: async (): Promise<LeaderboardEntry[]> => {
     try {
       const response = await api.get("/leaderboard");
 

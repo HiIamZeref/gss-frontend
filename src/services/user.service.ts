@@ -7,9 +7,15 @@ export interface CreateUserRequest {
 }
 
 export interface CreateUserResponse {
-  id: string;
+  status: string;
+  error: string;
+  data: UserData;
+}
+
+export interface UserData {
+  id: number;
   full_name: string;
-  referralCode: string;
+  referral_code: string;
 }
 
 export const userService = {
