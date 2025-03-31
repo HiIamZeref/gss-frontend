@@ -296,8 +296,8 @@ export default function RegisterPage() {
                 {leaderboardData.map((entry, index) => (
                   <tr key={index} className="border-b">
                     <td className="py-2">{index + 1}</td>
-                    <td className="py-2">{entry.ReferralId}</td>
-                    <td className="text-right py-2">{entry.ReferrersCount}</td>
+                    <td className="py-2">{entry.full_name}</td>
+                    <td className="text-right py-2">{entry.referrals_count}</td>
                   </tr>
                 ))}
               </tbody>

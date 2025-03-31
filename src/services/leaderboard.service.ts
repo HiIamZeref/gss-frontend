@@ -1,8 +1,9 @@
 import { api } from "./api";
 
 export interface LeaderboardEntry {
-  ReferralId: number;
-  ReferrersCount: number;
+  referrer_id: number;
+  full_name: string;
+  referrals_count: number;
 }
 
 export interface GetLeaderboardResponse {
