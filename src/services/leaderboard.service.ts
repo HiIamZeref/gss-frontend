@@ -5,8 +5,14 @@ export interface LeaderboardEntry {
   ReferrersCount: number;
 }
 
+export interface GetLeaderboardResponse {
+  status: string;
+  error: string;
+  data: LeaderboardEntry[];
+}
+
 export const leaderboardService = {
-  getLeaderboard: async (): Promise<LeaderboardEntry[]> => {
+  getLeaderboard: async (): Promise<GetLeaderboardResponse> => {
     try {
       const response = await api.get("/leaderboard");
 

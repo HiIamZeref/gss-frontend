@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,6 +27,7 @@ import {
   leaderboardService,
   LeaderboardEntry,
 } from "@/services/leaderboard.service";
+import { useSearchParams } from "next/navigation";
 
 // RegisterForm Schema
 const registerFormSchema = z.object({
@@ -39,9 +40,14 @@ const registerFormSchema = z.object({
   phone_number: z.string().min(10, {
     message: "Phone number must be at least 10 characters long",
   }),
+  referral_code: z.string().optional(),
 });
 
 export default function RegisterPage() {
+  // Search params to get possible referral code
+  const searchParams = useSearchParams();
+  const referralCodeFromUrl = searchParams.get("referralCode");
+
   // States to control the application
   const [showRegisterForm, setShowRegisterForm] = useState(true);
   const [showUserResult, setShowUserResult] = useState(false);
@@ -51,6 +57,7 @@ export default function RegisterPage() {
     LeaderboardEntry[] | null
   >(null);
   const [error, setError] = useState("");
+  const [sharingLink, setSharingLink] = useState("");
 
   const registerForm = useForm({
     resolver: zodResolver(registerFormSchema),
@@ -58,8 +65,15 @@ export default function RegisterPage() {
       full_name: "",
       email: "",
       phone_number: "",
+      referral_code: referralCodeFromUrl || "",
     },
   });
+
+  // Updates form if referral code is present in the URL
+  useEffect(() => {
+    if (referralCodeFromUrl)
+      registerForm.setValue("referral_code", referralCodeFromUrl);
+  }, [referralCodeFromUrl, registerForm]);
 
   interface RegisterFormValues {
     full_name: string;
@@ -67,11 +81,21 @@ export default function RegisterPage() {
     phone_number: string;
   }
 
+  // Handles the form submission
   const onSubmit = async (values: RegisterFormValues): Promise<void> => {
     try {
+      // Getting user data from the server
       setError("");
       const result = await userService.create(values);
       setUserData(result.data);
+
+      // Generate a referral code for the new registered user
+      const referralCode = result.data.referral_code;
+      const baseUrl = window.location.origin + window.location.pathname;
+      const generatedLink = `${baseUrl}?referralCode=${referralCode}`;
+      setSharingLink(generatedLink);
+
+      // UI Handling
       setShowRegisterForm(false);
       setShowUserResult(true);
       console.log("User registered successfully:", userData);
@@ -81,11 +105,12 @@ export default function RegisterPage() {
     }
   };
 
+  // Handles the finish competition logic
   const onFinishCompetition = async (): Promise<void> => {
     try {
       setError("");
       const result = await leaderboardService.getLeaderboard();
-      setLeaderboardData(result);
+      setLeaderboardData(result.data);
       setShowRegisterForm(false);
       setShowLeaderboard(true);
       console.log("Leaderboard data:", result);
@@ -95,11 +120,27 @@ export default function RegisterPage() {
     }
   };
 
+  // AUX FUNCTIONS
+  // Resets the form data to the initial state
   const resetToForm = () => {
     setShowRegisterForm(true);
     setShowUserResult(false);
     setShowLeaderboard(false);
-    registerForm.reset();
+    registerForm.reset({
+      full_name: "",
+      email: "",
+      phone_number: "",
+      referral_code: referralCodeFromUrl || "",
+    });
+  };
+
+  // Copies the sharing link to the clipboard
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(sharingLink);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+    }
   };
 
   const RegisterFormCard = () => (
@@ -107,6 +148,12 @@ export default function RegisterPage() {
       <CardTitle className="text-center">GSS Eco News Competition!</CardTitle>
       <CardDescription className="text-center">
         Welcome to GSS Eco News Competition! Please register to participate in.
+        {referralCodeFromUrl && (
+          <p className="text-sm text-green-600 mt-2">
+            You were invited by a friend! Your referral code is{" "}
+            <strong>{referralCodeFromUrl}</strong>.
+          </p>
+        )}
       </CardDescription>
       <CardContent>
         <Form {...registerForm}>
@@ -178,6 +225,7 @@ export default function RegisterPage() {
       </CardContent>
     </Card>
   );
+
   // UserResultCard Component
   const UserResultCard = () => (
     <Card className="p-6 w-full max-w-md">
@@ -188,16 +236,34 @@ export default function RegisterPage() {
       <CardContent className="mt-4">
         <div className="space-y-2">
           <p>
+            <strong>User ID:</strong> {userData?.id}
+          </p>
+          <p>
             <strong>Name:</strong> {userData?.full_name}
           </p>
           <p>
             <strong>Link:</strong> {userData?.referral_code}
           </p>
-          {userData?.id && (
-            <p>
-              <strong>User ID:</strong> {userData.id}
+          <div className="mt-4 p-3 bg-gray-100 rounded-md">
+            <p className="text-sm font-semibold mb-2">
+              Share this link with friends:
             </p>
-          )}
+            <div className="flex items-center gap-2">
+              <Input value={sharingLink} readOnly className="text-xs" />
+              <Button
+                type="button"
+                onClick={copyToClipboard}
+                className="whitespace-nowrap"
+                size="sm"
+              >
+                Copy
+              </Button>
+            </div>
+            <p className="text-xs mt-2 text-gray-600">
+              When friends register using your link, you&apos;ll earn points for
+              the competition!
+            </p>
+          </div>
         </div>
       </CardContent>
       <CardFooter className="flex justify-center">
