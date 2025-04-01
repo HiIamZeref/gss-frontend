@@ -41,13 +41,13 @@ const registerFormSchema = z.object({
   phone_number: z.string().min(10, {
     message: "Phone number must be at least 10 characters long",
   }),
-  referral_code: z.string().optional(),
+  referrer_code: z.string(),
 });
 
 function RegisterPageContent() {
   // Search params to get possible referral code
   const searchParams = useSearchParams();
-  const referralCodeFromUrl = searchParams.get("referralCode");
+  const referrerCodeFromUrl = searchParams.get("referralCode");
 
   // States to control the application
   const [showRegisterForm, setShowRegisterForm] = useState(true);
@@ -66,20 +66,21 @@ function RegisterPageContent() {
       full_name: "",
       email: "",
       phone_number: "",
-      referral_code: referralCodeFromUrl || "",
+      referrer_code: referrerCodeFromUrl || "",
     },
   });
 
   // Updates form if referral code is present in the URL
   useEffect(() => {
-    if (referralCodeFromUrl)
-      registerForm.setValue("referral_code", referralCodeFromUrl);
-  }, [referralCodeFromUrl, registerForm]);
+    if (referrerCodeFromUrl)
+      registerForm.setValue("referrer_code", referrerCodeFromUrl);
+  }, [referrerCodeFromUrl, registerForm]);
 
   interface RegisterFormValues {
     full_name: string;
     email: string;
     phone_number: string;
+    referrer_code: string;
   }
 
   // Handles the form submission
@@ -90,7 +91,7 @@ function RegisterPageContent() {
       const result = await userService.create(values);
       setUserData(result.data);
 
-      // Generate a referral code for the new registered user
+      // Generate a  new link based on the referral code for the new registered user
       const referralCode = result.data.referral_code;
       const baseUrl = window.location.origin + window.location.pathname;
       const generatedLink = `${baseUrl}?referralCode=${referralCode}`;
@@ -131,7 +132,7 @@ function RegisterPageContent() {
       full_name: "",
       email: "",
       phone_number: "",
-      referral_code: referralCodeFromUrl || "",
+      referrer_code: referrerCodeFromUrl || "",
     });
   };
 
@@ -149,10 +150,10 @@ function RegisterPageContent() {
       <CardTitle className="text-center">GSS Eco News Competition!</CardTitle>
       <CardDescription className="text-center">
         Welcome to GSS Eco News Competition! Please register to participate in.
-        {referralCodeFromUrl && (
+        {referrerCodeFromUrl && (
           <p className="text-sm text-green-600 mt-2">
             You were invited by a friend! Your referral code is{" "}
-            <strong>{referralCodeFromUrl}</strong>.
+            <strong>{referrerCodeFromUrl}</strong>.
           </p>
         )}
       </CardDescription>

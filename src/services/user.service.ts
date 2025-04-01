@@ -4,6 +4,7 @@ export interface CreateUserRequest {
   full_name: string;
   email: string;
   phone_number: string;
+  referrer_code: string;
 }
 
 export interface CreateUserResponse {
